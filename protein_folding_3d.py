@@ -3,6 +3,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
+from energy_wrapper import compute_total_energy
 
 # Initialize protein positions
 def initialize_protein(n_beads, dimension=3, fudge = 1e-5):
@@ -53,62 +54,101 @@ def total_energy(positions, n_beads, epsilon=1.0, sigma=1.0, b=1.0, k_b=100.0):
 
     return energy
 
-# Optimization function
+# # Optimization function
+# def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6):
+#     """
+#     Optimize the positions of the protein to minimize total energy.
+
+#     Parameters:
+#     ----------
+#     positions : np.ndarray
+#         A 2D NumPy array of shape (n_beads, d) representing the initial
+#         positions of the protein's beads in d-dimensional space.
+
+#     n_beads : int
+#         The number of beads (or units) in the protein model.
+
+#     write_csv : bool, optional (default=False)
+#         If True, the final optimized positions are saved to a CSV file.
+
+#     maxiter : int, optional (default=1000)
+#         The maximum number of iterations for the BFGS optimization algorithm.
+
+#     tol : float, optional (default=1e-6)
+#         The tolerance level for convergence in the optimization.
+
+#     Returns:
+#     -------
+#     result : scipy.optimize.OptimizeResult
+#         The result of the optimization process, containing information
+#         such as the optimized positions and convergence status.
+
+#     trajectory : list of np.ndarray
+#         A list of intermediate configurations during the optimization,
+#         where each element is an (n_beads, d) array representing the
+#         positions of the beads at that step.
+#     """
+#     trajectory = []
+
+#     def callback(x):
+#         trajectory.append(x.reshape((n_beads, -1)))
+#         if len(trajectory) % 20 == 0:
+#             print(len(trajectory))
+
+#     result = minimize(
+#         fun=total_energy,
+#         x0=positions.flatten(),
+#         args=(n_beads,),
+#         method='BFGS',
+#         callback=callback,
+#         tol=tol,
+#         options={'maxiter': maxiter, 'disp': True}
+#     )
+#     if write_csv:
+#         csv_filepath = f'protein{n_beads}.csv'
+#         print(f'Writing data to file {csv_filepath}')
+#         np.savetxt(csv_filepath, trajectory[-1], delimiter=",")
+
+#     return result, trajectory
+
 def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6):
-    """
-    Optimize the positions of the protein to minimize total energy.
-
-    Parameters:
-    ----------
-    positions : np.ndarray
-        A 2D NumPy array of shape (n_beads, d) representing the initial
-        positions of the protein's beads in d-dimensional space.
-
-    n_beads : int
-        The number of beads (or units) in the protein model.
-
-    write_csv : bool, optional (default=False)
-        If True, the final optimized positions are saved to a CSV file.
-
-    maxiter : int, optional (default=1000)
-        The maximum number of iterations for the BFGS optimization algorithm.
-
-    tol : float, optional (default=1e-6)
-        The tolerance level for convergence in the optimization.
-
-    Returns:
-    -------
-    result : scipy.optimize.OptimizeResult
-        The result of the optimization process, containing information
-        such as the optimized positions and convergence status.
-
-    trajectory : list of np.ndarray
-        A list of intermediate configurations during the optimization,
-        where each element is an (n_beads, d) array representing the
-        positions of the beads at that step.
-    """
     trajectory = []
-
-    def callback(x):
+    
+    x = positions.copy().flatten()
+    n = len(x)
+    I = np.eye(n)
+    H = I  # Initial inverse Hessian approximation
+    g = compute_total_energy(x, True)[1]
+    for k in range(maxiter):
+        if np.linalg.norm(g) < tol:
+            print(f"Converged in {k} iterations.")
+            break
+        p = -H.dot(g)
+        # Line search parameters
+        alpha = 1
+        c = 1e-4
+        rho = 0.9
+        # Backtracking line search
+        while compute_total_energy(x + alpha * p)[0] > compute_total_energy(x)[0] + c * alpha * g.dot(p):
+            alpha *= rho
+        x_new = x + alpha * p
+        g_new = compute_total_energy(x_new, True)[1]
+        s = x_new - x
+        y = g_new - g
+        ys = y.dot(s)
+        if ys > 1e-10:  # Avoid division by zero
+            rho_k = 1.0 / ys
+            I = np.eye(n)
+            H = (I - rho_k * np.outer(s, y)).dot(H).dot(I - rho_k * np.outer(y, s)) + rho_k * np.outer(s, s)
+        else:
+            H = I  # Reset if ys is too small
+        x = x_new
+        g = g_new
         trajectory.append(x.reshape((n_beads, -1)))
-        if len(trajectory) % 20 == 0:
-            print(len(trajectory))
-
-    result = minimize(
-        fun=total_energy,
-        x0=positions.flatten(),
-        args=(n_beads,),
-        method='BFGS',
-        callback=callback,
-        tol=tol,
-        options={'maxiter': maxiter, 'disp': True}
-    )
-    if write_csv:
-        csv_filepath = f'protein{n_beads}.csv'
-        print(f'Writing data to file {csv_filepath}')
-        np.savetxt(csv_filepath, trajectory[-1], delimiter=",")
-
-    return result, trajectory
+    else:
+        print(f"Maximum iterations ({maxiter}) reached.")
+    
+    return x, trajectory
 
 # 3D visualization function
 def plot_protein_3d(positions, title="Protein Conformation", ax=None):
@@ -170,7 +210,8 @@ if __name__ == "__main__":
 
     result, trajectory = optimize_protein(initial_positions, n_beads, write_csv = True)
 
-    optimized_positions = result.x.reshape((n_beads, dimension))
+    #optimized_positions = result.x.reshape((n_beads, dimension))
+    optimized_positions = result.reshape((n_beads, dimension))
     print("Optimized Energy:", total_energy(optimized_positions.flatten(), n_beads))
     plot_protein_3d(optimized_positions, title="Optimized Configuration")
 

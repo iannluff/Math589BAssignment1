@@ -5,7 +5,7 @@
 extern "C" {
 
   double lennard_jones_potential(double r, double epsilon, double sigma);
-  double total_energy(double* positions, int n_beads, double epsilon, double sigma, double b, double k_b);
+  double total_energy(double* positions, double* gradient, int n_beads, double epsilon, double sigma, double b, double k_b);
 
 }
 

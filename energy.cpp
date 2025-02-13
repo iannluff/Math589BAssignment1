@@ -12,7 +12,7 @@ double bond_potential(double r, double b, double k_b) {
   return k_b * pow(r - b, 2);
 }
 
-double total_energy(double* positions, int n_beads, double epsilon, double sigma, double b, double k_b) {
+double total_energy(double* positions, double* gradient, int n_beads, double epsilon, double sigma, double b, double k_b) {
   double energy = 0.0;
 
   // Bond potential
@@ -38,7 +38,28 @@ double total_energy(double* positions, int n_beads, double epsilon, double sigma
       energy += lennard_jones_potential(r, epsilon, sigma);
     }
   }
+  
+  if(gradient){
+    std::memset(gradient, 0, n_beads * 3 * sizeof(double)); // Initialize gradient to zero
 
+    for (int i = 0; i < n_beads * 3; ++i) {
+        double original_pos = positions[i];
+
+        // Forward step
+        positions[i] = original_pos + 1e-6;
+        double E_plus = total_energy(positions, NULL, n_beads, epsilon, sigma, b, k_b);
+
+        // Backward step
+        positions[i] = original_pos - 1e-6;
+        double E_minus = total_energy(positions, NULL, n_beads, epsilon, sigma, b, k_b);
+
+        // Compute central difference gradient
+        gradient[i] = (E_plus - E_minus) / (2 * 1e-6);
+
+        // Restore original position
+        positions[i] = original_pos;
+    }
+  }
   return energy;
 }
 

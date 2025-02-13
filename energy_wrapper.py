@@ -2,8 +2,6 @@ import ctypes
 import numpy as np
 import subprocess
 
-subprocess.run(["make"])
-
 # Load the shared library
 lib = ctypes.CDLL('./energy.so')  # Use 'energy.dll' on Windows
 

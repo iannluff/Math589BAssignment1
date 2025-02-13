@@ -120,6 +120,8 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
     H = I  # Initial inverse Hessian approximation
     g = compute_total_energy(x, True)[1]
     for k in range(maxiter):
+        if (k % 20 == 0):
+            print(k)
         if np.linalg.norm(g) < tol:
             print(f"Converged in {k} iterations.")
             break
@@ -201,7 +203,7 @@ def animate_optimization(trajectory, interval=100):
 
 # Main function
 if __name__ == "__main__":
-    n_beads = 10
+    n_beads = 500
     dimension = 3
     initial_positions = initialize_protein(n_beads, dimension)
 

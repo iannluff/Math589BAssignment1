@@ -129,7 +129,7 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
         # Line search parameters
         alpha = 1
         c = 1e-4
-        rho = 0.9
+        rho = 0.5
         # Backtracking line search
         while compute_total_energy(x + alpha * p)[0] > compute_total_energy(x)[0] + c * alpha * g.dot(p):
             alpha *= rho
@@ -149,6 +149,11 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
         trajectory.append(x.reshape((n_beads, -1)))
     else:
         print(f"Maximum iterations ({maxiter}) reached.")
+        
+    if write_csv:
+        csv_filepath = f'protein{n_beads}.csv'
+        print(f'Writing data to file {csv_filepath}')
+        np.savetxt(csv_filepath, trajectory[-1], delimiter=",")
     
     return x, trajectory
 
@@ -203,7 +208,7 @@ def animate_optimization(trajectory, interval=100):
 
 # Main function
 if __name__ == "__main__":
-    n_beads = 500
+    n_beads = 100
     dimension = 3
     initial_positions = initialize_protein(n_beads, dimension)
 

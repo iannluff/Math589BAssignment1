@@ -1,5 +1,5 @@
 ---
 triple:          'arm64-apple-darwin'
-binary-path:     libenergy.so
+binary-path:     energy.so
 relocations:     []
 ...

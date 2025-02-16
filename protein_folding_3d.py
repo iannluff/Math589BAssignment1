@@ -129,9 +129,12 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
         # Line search parameters
         alpha = 1
         c = 1e-4
-        rho = 0.5
+        rho = 0.9
         # Backtracking line search
         while compute_total_energy(x + alpha * p)[0] > compute_total_energy(x)[0] + c * alpha * g.dot(p):
+            if(alpha < 1e-5):
+                alpha = 1e-3
+                break
             alpha *= rho
         x_new = x + alpha * p
         g_new = compute_total_energy(x_new)[1]

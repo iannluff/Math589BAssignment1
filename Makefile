@@ -2,13 +2,13 @@ CXX = g++
 CXXFLAGS = -Wall -ggdb3 -O5
 LDFLAGS = -L. -lm
 
-all: energy.so grad_w_armijo bfgs_w_classes bfgs_w_varargs
+all: energy.so bfgs_w_classes bfgs_w_varargs
 
 energy.so: energy.cpp energy.hpp
 	$(CXX) $(CXXFLAGS) -shared -o energy.so -fPIC energy.cpp
 
-grad_w_armijo: energy.so grad_w_armijo.o 
-	$(CXX) $(CXXFLAGS) grad_w_armijo.o -o grad_w_armijo  $(LDFLAGS) -lenergy
+#grad_w_armijo: energy.so grad_w_armijo.o 
+	#$(CXX) $(CXXFLAGS) grad_w_armijo.o -o grad_w_armijo  $(LDFLAGS) -lenergy
 
 
 bfgs_w_classes: bfgs_w_classes.o

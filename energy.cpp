@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <cstring>
 #include "energy.hpp"
 
 double lennard_jones_potential(double r, double epsilon, double sigma) {

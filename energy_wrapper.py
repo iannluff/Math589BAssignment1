@@ -17,7 +17,7 @@ lib.total_energy.argtypes = [
 ]
 lib.total_energy.restype = ctypes.c_double
 
-def compute_total_energy(positions, gradient=None, epsilon=1.0, sigma=1.0, b=1.0, k_b=100.0):
+def compute_total_energy(positions, epsilon=1.0, sigma=1.0, b=1.0, k_b=100.0):
     """
     Wrapper function to compute total energy using the C++ library.
     """
@@ -25,15 +25,11 @@ def compute_total_energy(positions, gradient=None, epsilon=1.0, sigma=1.0, b=1.0
     positions_array = np.array(positions, dtype=np.float64)
     positions_ptr = positions_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
     
-    if(gradient):
-        grad_array = np.zeros(n_beads*3, dtype=np.float64)
-        grad_ptr = grad_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-        f_val = lib.total_energy(positions_ptr, grad_ptr, n_beads, epsilon, sigma, b, k_b)
-        return f_val, grad_array
-    else:
-        f_val = lib.total_energy(positions_ptr, None, n_beads, epsilon, sigma, b, k_b)
+    grad_array = np.zeros(n_beads*3, dtype=np.float64)
+    grad_ptr = grad_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    f_val = lib.total_energy(positions_ptr, grad_ptr, n_beads, epsilon, sigma, b, k_b)
     
-    return f_val, None
+    return f_val, grad_array
 
 # Example usage
 if __name__ == "__main__":

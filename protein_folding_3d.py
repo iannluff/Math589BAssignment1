@@ -118,7 +118,7 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
     n = len(x)
     I = np.eye(n)
     H = I  # Initial inverse Hessian approximation
-    g = compute_total_energy(x, True)[1]
+    g = compute_total_energy(x)[1]
     for k in range(maxiter):
         if (k % 20 == 0):
             print(k)
@@ -134,7 +134,7 @@ def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6
         while compute_total_energy(x + alpha * p)[0] > compute_total_energy(x)[0] + c * alpha * g.dot(p):
             alpha *= rho
         x_new = x + alpha * p
-        g_new = compute_total_energy(x_new, True)[1]
+        g_new = compute_total_energy(x_new)[1]
         s = x_new - x
         y = g_new - g
         ys = y.dot(s)

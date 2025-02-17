@@ -3,7 +3,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
-from energy_wrapper import compute_total_energy
+from energy_wrapper import bfgs_optimize
 
 # Initialize protein positions
 def initialize_protein(n_beads, dimension=3, fudge = 1e-5):
@@ -112,53 +112,31 @@ def total_energy(positions, n_beads, epsilon=1.0, sigma=1.0, b=1.0, k_b=100.0):
 #     return result, trajectory
 
 def optimize_protein(positions, n_beads, write_csv=False, maxiter=1000, tol=1e-6):
+    """
+    Optimize the positions of the protein to minimize total energy using the BFGS algorithm
+    implemented in C.
+    """
     trajectory = []
-    
+
+    # Flatten positions for C compatibility
     x = positions.copy().flatten()
-    n = len(x)
-    I = np.eye(n)
-    H = I  # Initial inverse Hessian approximation
-    g = compute_total_energy(x)[1]
-    for k in range(maxiter):
-        if (k % 20 == 0):
-            print(k)
-        if np.linalg.norm(g) < tol:
-            print(f"Converged in {k} iterations.")
-            break
-        p = -H.dot(g)
-        # Line search parameters
-        alpha = 1
-        c = 1e-4
-        rho = 0.9
-        # Backtracking line search
-        while compute_total_energy(x + alpha * p)[0] > compute_total_energy(x)[0] + c * alpha * g.dot(p):
-            if(alpha < 1e-5):
-                alpha = 1e-3
-                break
-            alpha *= rho
-        x_new = x + alpha * p
-        g_new = compute_total_energy(x_new)[1]
-        s = x_new - x
-        y = g_new - g
-        ys = y.dot(s)
-        if ys > 1e-10:  # Avoid division by zero
-            rho_k = 1.0 / ys
-            I = np.eye(n)
-            H = (I - rho_k * np.outer(s, y)).dot(H).dot(I - rho_k * np.outer(y, s)) + rho_k * np.outer(s, s)
-        else:
-            H = I  # Reset if ys is too small
-        x = x_new
-        g = g_new
-        trajectory.append(x.reshape((n_beads, -1)))
-    else:
-        print(f"Maximum iterations ({maxiter}) reached.")
-        
+    n = len(x)  # Total elements
+    h = 1e-6  # Step size for gradient estimation
+    epsilon, sigma, b, k_b = 1.0, 1.0, 1.0, 100.0  # Potential parameters
+
+    # Call the C BFGS optimizer
+    optimized_x, trajectory = bfgs_optimize(x, n, maxiter, tol, h, epsilon, sigma, b, k_b)
+
+    # Reshape optimized positions for return
+    optimized_x = optimized_x.reshape((n_beads, -1))
+
+    # Write trajectory to CSV if needed
     if write_csv:
         csv_filepath = f'protein{n_beads}.csv'
         print(f'Writing data to file {csv_filepath}')
         np.savetxt(csv_filepath, trajectory[-1], delimiter=",")
-    
-    return x, trajectory
+
+    return optimized_x, trajectory
 
 # 3D visualization function
 def plot_protein_3d(positions, title="Protein Conformation", ax=None):

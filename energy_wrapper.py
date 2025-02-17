@@ -1,40 +1,38 @@
 import ctypes
 import numpy as np
-import subprocess
 
-# Load the shared library
-lib = ctypes.CDLL('./energy.so')  # Use 'energy.dll' on Windows
+# Load the compiled shared C library
+lib = ctypes.CDLL('./energy.so')  # Update path if needed
 
-# Define function argument and return types
-lib.total_energy.argtypes = [
-    ctypes.POINTER(ctypes.c_double),  # positions
-    ctypes.POINTER(ctypes.c_double), 
-    ctypes.c_int,                    # n_beads
-    ctypes.c_double,                 # epsilon
-    ctypes.c_double,                 # sigma
-    ctypes.c_double,                 # b
-    ctypes.c_double                  # k_b
+# Function prototypes
+lib.bfgs.argtypes = [
+    ctypes.POINTER(ctypes.c_double),  # x (positions)
+    ctypes.c_int,                     # n (total number of elements)
+    ctypes.c_int,                     # max_iters
+    ctypes.c_double,                   # tol
+    ctypes.c_double,                   # h (step size)
+    ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double,  # epsilon, sigma, b, k_b
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),  # trajectory (array pointer)
+    ctypes.POINTER(ctypes.c_int)  # num_iters_out
 ]
-lib.total_energy.restype = ctypes.c_double
+lib.bfgs.restype = None  # Function returns results via output parameters
 
-def compute_total_energy(positions, epsilon=1.0, sigma=1.0, b=1.0, k_b=100.0):
+def bfgs_optimize(x, n, max_iters, tol, h, epsilon, sigma, b, k_b):
     """
-    Wrapper function to compute total energy using the C++ library.
+    Wrapper for the C BFGS optimizer.
     """
-    n_beads = len(positions) // 3
-    positions_array = np.array(positions, dtype=np.float64)
-    positions_ptr = positions_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    
-    grad_array = np.zeros(n_beads*3, dtype=np.float64)
-    grad_ptr = grad_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    f_val = lib.total_energy(positions_ptr, grad_ptr, n_beads, epsilon, sigma, b, k_b)
-    
-    return f_val, grad_array
+    x_array = np.array(x, dtype=np.float64)
+    x_ptr = x_array.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 
-# Example usage
-if __name__ == "__main__":
-    n_beads = 10
-    positions = np.random.rand(n_beads * 3)  # Random 3D positions for each bead
-    energy, grad = compute_total_energy(positions, True)
-    print(f"Total Energy: {energy}")
-    print(f"Gradient: {grad}")
+    # Output: Trajectory storage
+    trajectory_ptr = ctypes.POINTER(ctypes.c_double)()
+    num_iters = ctypes.c_int()
+
+    # Call C BFGS function
+    lib.bfgs(x_ptr, n, max_iters, tol, h, epsilon, sigma, b, k_b, ctypes.byref(trajectory_ptr), ctypes.byref(num_iters))
+
+    # Retrieve trajectory
+    num_steps = num_iters.value
+    trajectory = np.ctypeslib.as_array(trajectory_ptr, shape=(num_steps, n))
+
+    return x_array, trajectory

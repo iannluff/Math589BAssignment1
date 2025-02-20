@@ -5,7 +5,9 @@ LDFLAGS = -L. -lm
 all: libenergy.so grad_w_armijo bfgs_w_classes bfgs_w_varargs
 
 libenergy.so: energy.c energy.cpp energy.hpp
-	$(CXX) $(CXXFLAGS) -shared -o libenergy.so -fPIC energy.c
+	$(CC) $(CFLAGS) -c -fPIC energy.c -o energy_c.o
+	$(CXX) $(CXXFLAGS) -c -fPIC energy.cpp -o energy_cpp.o
+	$(CXX) $(CXXFLAGS) -shared -o libenergy.so energy_c.o energy_cpp.o
 
 grad_w_armijo: libenergy.so grad_w_armijo.o 
 	$(CXX) $(CXXFLAGS) grad_w_armijo.o -o grad_w_armijo  $(LDFLAGS) -lenergy

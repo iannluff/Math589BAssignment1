@@ -2,7 +2,7 @@ import ctypes
 import numpy as np
 
 # Load the shared library
-lib = ctypes.CDLL('./energy.so')  # Use 'energy.dll' on Windows
+lib = ctypes.CDLL('./libenergy.so')  # Use 'energy.dll' on Windows
 
 # Define argument and return types for the BFGS function
 lib.bfgs.argtypes = [

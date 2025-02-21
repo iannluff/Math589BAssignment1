@@ -40,7 +40,7 @@ void vector_matrix_mult(const double *vector, const double *matrix, double *resu
 }
 
 // Function to compute Euclidean distance
-double compute_distance(double *a, double *b, int d) {
+double compute_distance(const double *a, const double *b, int d) {
     double sum = 0.0;
     for (int i = 0; i < d; i++) {
         sum += (a[i] - b[i]) * (a[i] - b[i]);
@@ -82,7 +82,7 @@ double total_energy(const double *positions, double *grad, int n_beads, int d, d
     for (int i = 0; i < n_beads; i++) {
         for (int j = i + 1; j < n_beads; j++) {
             double r = compute_distance(&positions[i * d], &positions[j * d], d);
-            if (r > 1e-2){
+            if (r > 1e-10){
                 double lj_energy = lennard_jones_potential(r, epsilon, sigma);
                 energy += lj_energy;
             }
